@@ -1,0 +1,573 @@
+#include <iostream>
+#include <fstream>
+#include <cstring>
+#include <limits>
+#include <iomanip>
+#include <string>
+
+using namespace std;
+
+// Структура одной книги
+struct Book {
+    char author[30];     // Автор (до 29 символов + '\0')
+    char title[30];      // Название (до 29 символов + '\0')
+    int year;            // Год издания
+    int pages;           // Количество страниц
+    char genre[20];      // Жанр (до 19 символов + '\0')
+    char publisher[10];  // Издательство (до 9 символов + '\0')
+};
+
+int main() {
+    Book book;           // Переменная для хранения одной книги (ввод/чтение)
+    int choice;          // Выбор пункта главного меню
+
+    // ================== ОДНОРАЗОВЫЙ БЛОК ГЕНЕРАЦИИ books.dat ==================
+    // Удалите этот блок после первого запуска, чтобы не перезаписывать файл.
+    {
+        // Открываем файл books.dat на запись в бинарном режиме, очищая его (trunc)
+        ofstream initFile("books.dat", ios::binary | ios::trunc);
+        if (initFile) {
+            // Массив из 10 готовых примеров книг
+            Book samples[10] = {
+                {"Толстой",   "Война и мир",        1869, 1225, "Роман",     "АСТ"},
+                {"Достоевский","Преступление",      1866,  671, "Роман",     "Эксмо"},
+                {"Булгаков",  "Мастер и Маргарита", 1967,  480, "Роман",     "АСТ"},
+                {"Пушкин",    "Евгений Онегин",     1833,  224, "Поэма",     "Эксмо"},
+                {"Гоголь",    "Мёртвые души",       1842,  352, "Поэма",     "АСТ"},
+                {"Лермонтов", "Герой времени",      1840,  288, "Роман",     "Эксмо"},
+                {"Тургенев",  "Отцы и дети",        1862,  416, "Роман",     "АСТ"},
+                {"Чехов",     "Вишнёвый сад",       1904,  128, "Пьеса",     "Эксмо"},
+                {"Оруэлл",    "1984",               1949,  320, "Антиутопия","АСТ"},
+                {"Толкин",    "Властелин колец",    1954, 1178, "Фэнтези",   "Эксмо"}
+            };
+            // Цикл: записываем все 10 книг в файл
+            for (int i = 0; i < 10; ++i) {
+                initFile.write(reinterpret_cast<char*>(&samples[i]), sizeof(Book));
+            }
+            initFile.close();
+        }
+    }
+    // ================== КОНЕЦ ОДНОРАЗОВОГО БЛОКА ==================
+
+    // Главный цикл программы: повторяется, пока пользователь не выберет 0 (Exit)
+    do {
+        // Вывод главного меню
+        cout << "1 - Add book" << endl;
+        cout << "2 - Show all" << endl;
+        cout << "3 - Search" << endl;
+        cout << "0 - Exit" << endl;
+
+        // Цикл проверки корректности выбора пункта меню (0..3)
+        while (!(cin >> choice) || choice < 0 || choice > 3) {
+            cout << "Enter a number: ";
+
+            cin.clear();                                        // Сброс ошибки ввода
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Очистка буфера до '\n'
+        }
+
+        // Обработка выбранного пункта меню
+        switch (choice) {
+        case 1: { // Добавление новой книги
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Убираем '\n' из буфера
+
+            cout << "Author: ";
+            cin.getline(book.author, 30); // Читаем строку автора
+
+            // Цикл проверки автора: пусто или слишком длинно
+            while (cin.fail() || strlen(book.author) == 0) {
+                if (cin.fail()) {
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                    cout << "Author is too long. Maximum 29 characters: ";
+                }
+                else {
+                    cout << "Author cannot be empty" << endl;
+                }
+
+                cin.getline(book.author, 30);
+            }
+
+            cout << "Title: ";
+            cin.getline(book.title, 30); // Читаем строку названия
+
+            // Цикл проверки названия: пусто или слишком длинно
+            while (cin.fail() || strlen(book.title) == 0) {
+                if (cin.fail()) {
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                    cout << "Title is too long. Maximum 29 characters" << endl;
+                }
+                else {
+                    cout << "Title cannot be empty" << endl;
+                }
+
+                cin.getline(book.title, 30);
+            }
+
+            cout << "Year: ";
+            // Цикл проверки года: должен быть числом в диапазоне 1000..2026
+            while (!(cin >> book.year) || book.year < 1000 || book.year > 2026) {
+                cout << "Wrong year. Enter year from 1000 to 2026" << endl;
+
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            }
+
+            cout << "Pages: ";
+            // Цикл проверки страниц: положительное число
+            while (!(cin >> book.pages) || book.pages <= 0) {
+                cout << "Wrong pages. Enter positive number: ";
+
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            }
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Убираем '\n' после числа
+
+            cout << "Genre: ";
+            cin.getline(book.genre, 20); // Читаем строку жанра
+
+            // Цикл проверки жанра: пусто или слишком длинно
+            while (cin.fail() || strlen(book.genre) == 0) {
+                if (cin.fail()) {
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                    cout << "Genre is too long. Maximum 19 characters" << endl;
+                }
+                else {
+                    cout << "Genre cannot be empty" << endl;
+                }
+                cin.getline(book.genre, 20);
+            }
+
+            cout << "Publisher: ";
+            cin.getline(book.publisher, 10); // Читаем строку издательства
+
+            // Цикл проверки издательства: пусто или слишком длинно
+            while (cin.fail() || strlen(book.publisher) == 0) {
+                if (cin.fail()) {
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                    cout << "Publisher is too long. Maximum 9 characters" << endl;
+                }
+                else {
+                    cout << "Publisher cannot be empty" << endl;
+                }
+                cin.getline(book.publisher, 10);
+            }
+
+            // Открываем books.dat на дозапись в конец (app) в бинарном режиме
+            ofstream file("books.dat", ios::binary | ios::app);
+            if (!file) {
+                cout << "File open error" << endl;
+            }
+            else {
+                // Записываем структуру Book целиком в файл
+                file.write(reinterpret_cast<char*>(&book), sizeof(Book));
+
+                file.close();
+
+                cout << "Book added." << endl;
+            }
+
+            break;
+        }
+        case 2: { // Показать все книги
+            ifstream file("books.dat", ios::binary); // Открываем файл на чтение
+
+            if (!file) {
+                cout << "Error file read" << endl;
+            }
+            else {
+                // Вывод шапки таблицы
+                cout << left
+                    << setw(31) << "Author"
+                    << setw(31) << "Title"
+                    << setw(21) << "Genre"
+                    << setw(11) << "Publisher"
+                    << setw(8) << "Year"
+                    << setw(14) << "Pages"
+                    << endl;
+                cout << string(116, '-') << endl; // Разделитель
+
+                // Цикл: читаем книги, пока файл не закончится
+                while (file.read(reinterpret_cast<char*>(&book), sizeof(Book))) {
+                    cout << left
+                        << setw(31) << book.author
+                        << setw(31) << book.title
+                        << setw(21) << book.genre
+                        << setw(11) << book.publisher
+                        << setw(8) << book.year
+                        << setw(14) << book.pages
+                        << endl;
+                }
+
+                file.close();
+            }
+            break;
+        }
+        case 3: { // Поиск
+            int searchChoice; // Выбор поля для поиска
+
+            cout << "search by: " << endl;
+            cout << "1 - author" << endl;
+            cout << "2 - title" << endl;
+            cout << "3 - year" << endl;
+            cout << "4 - pages" << endl;
+            cout << "5 - genre" << endl;
+            cout << "6 - publisher " << endl;
+            cout << "0 - back" << endl;
+
+            // Цикл проверки выбора поиска (0..6)
+            while (!(cin >> searchChoice) || searchChoice < 0 || searchChoice > 6) {
+                cout << "Wrong choice. Enter 0-6: ";
+
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            }
+
+            if (searchChoice == 1) { // Поиск по автору
+                char searchAuthor[30]; // Строка для поиска
+
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                cout << "Enter Author: ";
+                cin.getline(searchAuthor, 30);
+
+                // Цикл проверки строки поиска
+                while (cin.fail() || strlen(searchAuthor) == 0) {
+                    if (cin.fail()) {
+                        cin.clear();
+                        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                        cout << "Author is too long. Maximum 29 characters" << endl;
+                    }
+                    else {
+                        cout << "Author cannot be empty" << endl;
+                    }
+                    cin.getline(searchAuthor, 30);
+                }
+
+                ifstream file("books.dat", ios::binary); // Открываем файл на чтение
+
+                if (!file) {
+                    cout << "File open error" << endl;
+                }
+                else {
+                    // Шапка таблицы
+                    cout << left
+                        << setw(31) << "Author"
+                        << setw(31) << "Title"
+                        << setw(21) << "Genre"
+                        << setw(11) << "Publisher"
+                        << setw(8) << "Year"
+                        << setw(14) << "Pages"
+                        << endl;
+                    cout << string(116, '-') << endl;
+
+                    // Цикл чтения всех книг и вывода совпадений по автору
+                    while (file.read(reinterpret_cast<char*>(&book), sizeof(Book))) {
+                        if (strstr(book.author, searchAuthor) != nullptr) {
+                            cout << left
+                                << setw(31) << book.author
+                                << setw(31) << book.title
+                                << setw(21) << book.genre
+                                << setw(11) << book.publisher
+                                << setw(8) << book.year
+                                << setw(14) << book.pages
+                                << endl;
+                        }
+                    }
+                    file.close();
+                }
+            }
+            if (searchChoice == 2) { // Поиск по названию
+                char searchTitle[30]; // Строка для поиска
+
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                cout << "Enter title: " << endl;
+
+                cin.getline(searchTitle, 30);
+
+                // Цикл проверки строки поиска
+                while (cin.fail() || strlen(searchTitle) == 0) {
+                    if (cin.fail()) {
+                        cin.clear();
+                        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                        cout << "Title is too long. Maximum characters 29" << endl;
+                    }
+                    else {
+                        cout << "Title cannot be empty" << endl;
+                    }
+                    cin.getline(searchTitle, 30);
+                }
+
+                ifstream file("books.dat", ios::binary);
+
+                if (!file) {
+                    cout << "File open error" << endl;
+                }
+                else {
+                    cout << left
+                        << setw(31) << "Author"
+                        << setw(31) << "Title"
+                        << setw(21) << "Genre"
+                        << setw(11) << "Publisher"
+                        << setw(8) << "Year"
+                        << setw(14) << "Pages"
+                        << endl;
+                    cout << string(116, '-') << endl;
+
+                    // Цикл чтения книг и поиска по названию
+                    while (file.read(reinterpret_cast<char*>(&book), sizeof(Book))) {
+                        if (strstr(book.title, searchTitle) != nullptr) {
+                            cout << left
+                                << setw(31) << book.author
+                                << setw(31) << book.title
+                                << setw(21) << book.genre
+                                << setw(11) << book.publisher
+                                << setw(8) << book.year
+                                << setw(14) << book.pages
+                                << endl;
+                        }
+                    }
+                    file.close();
+                }
+            }
+            if (searchChoice == 3) { // Поиск по году (диапазон)
+                int minYear; // Нижняя граница
+                int maxYear; // Верхняя граница
+
+                cout << "From year: " << endl;
+                // Цикл проверки минимального года
+                while (!(cin >> minYear) || minYear < 1000 || minYear > 2026) {
+                    cout << "Wrong year. Enter year from 1000 to 2026" << endl;
+
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                }
+
+                cout << "To year: " << endl;
+                // Цикл проверки максимального года (>= minYear)
+                while (!(cin >> maxYear) || maxYear < 1000 || maxYear > 2026 || maxYear < minYear) {
+                    cout << "Wrong year. Enter year from " << minYear << " to 2026: ";
+
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                }
+
+                ifstream file("books.dat", ios::binary);
+                if (!file) {
+                    cout << "File open error" << endl;
+                }
+                else {
+                    cout << left
+                        << setw(31) << "Author"
+                        << setw(31) << "Title"
+                        << setw(21) << "Genre"
+                        << setw(11) << "Publisher"
+                        << setw(8) << "Year"
+                        << setw(14) << "Pages"
+                        << endl;
+                    cout << string(116, '-') << endl;
+
+                    // Цикл чтения книг и поиска по диапазону года
+                    while (file.read(reinterpret_cast<char*>(&book), sizeof(Book))) {
+                        if (book.year >= minYear && book.year <= maxYear) {
+                            cout << left
+                                << setw(31) << book.author
+                                << setw(31) << book.title
+                                << setw(21) << book.genre
+                                << setw(11) << book.publisher
+                                << setw(8) << book.year
+                                << setw(14) << book.pages
+                                << endl;
+                        }
+                    }
+                    file.close();
+                }
+            }
+            if (searchChoice == 4) { // Поиск по количеству страниц (диапазон)
+                int minPages; // Нижняя граница
+                int maxPages; // Верхняя граница
+
+                cout << "From pages" << endl;
+                // Цикл проверки минимального количества страниц
+                while (!(cin >> minPages) || minPages < 1) {
+                    cout << "Wrong pages. Enter correct pages." << endl;
+
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                }
+
+                cout << "To pages" << endl;
+                // Цикл проверки максимального количества страниц (>= minPages)
+                while (!(cin >> maxPages) || maxPages < 1 || maxPages < minPages) {
+                    cout << "Wrong pages. Enter correct pages." << endl;
+
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                }
+
+                ifstream file("books.dat", ios::binary);
+
+                if (!file) {
+                    cout << "File open error" << endl;
+                }
+                else {
+                    cout << left
+                        << setw(31) << "Author"
+                        << setw(31) << "Title"
+                        << setw(21) << "Genre"
+                        << setw(11) << "Publisher"
+                        << setw(8) << "Year"
+                        << setw(14) << "Pages"
+                        << endl;
+                    cout << string(116, '-') << endl;
+
+                    // Цикл чтения книг и поиска по диапазону страниц
+                    while (file.read(reinterpret_cast<char*>(&book), sizeof(Book))) {
+                        if (book.pages >= minPages && book.pages <= maxPages) {
+                            cout << left
+                                << setw(31) << book.author
+                                << setw(31) << book.title
+                                << setw(21) << book.genre
+                                << setw(11) << book.publisher
+                                << setw(8) << book.year
+                                << setw(14) << book.pages
+                                << endl;
+                        }
+                    }
+                    file.close();
+                }
+            }
+            if (searchChoice == 5) { // Поиск по жанру
+                char searchGenre[20]; // Строка для поиска
+
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                cout << "Enter genre: " << endl;
+                cin.getline(searchGenre, 20);
+
+                // Цикл проверки строки поиска
+                while (cin.fail() || strlen(searchGenre) == 0) {
+                    if (cin.fail()) {
+                        cin.clear();
+                        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                        cout << "Genre is too long. Maximum characters 19" << endl;
+                    }
+                    else {
+                        cout << "Genre cannot be empty" << endl;
+                    }
+                    cin.getline(searchGenre, 20);
+                }
+
+                ifstream file("books.dat", ios::binary);
+
+                if (!file) {
+                    cout << "File open error" << endl;
+                }
+                else {
+                    cout << left
+                        << setw(31) << "Author"
+                        << setw(31) << "Title"
+                        << setw(21) << "Genre"
+                        << setw(11) << "Publisher"
+                        << setw(8) << "Year"
+                        << setw(14) << "Pages"
+                        << endl;
+                    cout << string(116, '-') << endl;
+
+                    // Цикл чтения книг и поиска по жанру
+                    while (file.read(reinterpret_cast<char*>(&book), sizeof(Book))) {
+                        if (strstr(book.genre, searchGenre) != nullptr) {
+                            cout << left
+                                << setw(31) << book.author
+                                << setw(31) << book.title
+                                << setw(21) << book.genre
+                                << setw(11) << book.publisher
+                                << setw(8) << book.year
+                                << setw(14) << book.pages
+                                << endl;
+                        }
+                    }
+                    file.close();
+                }
+            }
+            if (searchChoice == 6) { // Поиск по издательству
+                char searchPublisher[10]; // Строка для поиска
+
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                cout << "Enter publisher: " << endl;
+                cin.getline(searchPublisher, 10);
+
+                // Цикл проверки строки поиска
+                while (cin.fail() || strlen(searchPublisher) == 0) {
+                    if (cin.fail()) {
+                        cin.clear();
+                        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                        cout << "Publisher is too long. Maximum characters 9" << endl;
+                    }
+                    else {
+                        cout << "Publisher cannot be empty" << endl;
+                    }
+                    cin.getline(searchPublisher, 10);
+                }
+
+                ifstream file("books.dat", ios::binary);
+
+                if (!file) {
+                    cout << "File open error" << endl;
+                }
+                else {
+                    cout << left
+                        << setw(31) << "Author"
+                        << setw(31) << "Title"
+                        << setw(21) << "Genre"
+                        << setw(11) << "Publisher"
+                        << setw(8) << "Year"
+                        << setw(14) << "Pages"
+                        << endl;
+                    cout << string(116, '-') << endl;
+
+                    // Цикл чтения книг и поиска по издательству
+                    while (file.read(reinterpret_cast<char*>(&book), sizeof(Book))) {
+                        if (strstr(book.publisher, searchPublisher) != nullptr) {
+                            cout << left
+                                << setw(31) << book.author
+                                << setw(31) << book.title
+                                << setw(21) << book.genre
+                                << setw(11) << book.publisher
+                                << setw(8) << book.year
+                                << setw(14) << book.pages
+                                << endl;
+                        }
+                    }
+                    file.close();
+                }
+            }
+            break;
+        }
+        case 0: // Выход из программы
+        {
+            cout << "Exit" << endl;
+            break;
+        }
+
+        default: // Неверный пункт меню (на случай, если проверка выше не сработала)
+            cout << "Wrong choise" << endl;
+            break;
+        }
+
+    } while (choice != 0); // Повторяем, пока не выбран 0
+
+    return 0;
+}
